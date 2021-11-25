@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RadioDNS Push Transport Demo</title>
+</head>
+<body>
+  <h1>RadioDNS Push Transport Demo</h1>
+  <p>
+    This page is launching a Server Sent Events (SSE) connection to an example server to demonstrate
+    a way of using SSE as the foundation for a common push transport for both web and native
+    applications.
+  </p>
+  <p>
+    The server is available via HTTP/1.1 and HTTP/2.0 - 2.0 benefits from using a single connection
+    for the HTML body, and SSE sources whereas HTTP/1.1 opens multiple connections. Modern browsers
+    automatically use HTTP/2.0 if available, so if you wish to test the page via 1.1 please ensure
+    you're requesting the page over HTTP rather than HTTPS.
+  <p>
+    This could then be used for an update to the Slideshow specification as well as future hybrid radio
+    applications that require a push transport.
+  </p>
+
+  <h2>Slideshow</h2>
+  <p>Live relay from the BBC's public Slideshow Stomp server.</p>
+  <div id="image">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/SMPTE_Color_Bars.svg" height="240">
+  </div>
+  <p id="text">Awaiting text...</p>
+
+  <h2>Metadata</h2>
+  <p>Example of meta from a fake server-side feed.</p>
+  <div>
+    <img id="artwork" height="60" style="float: left; margin-right: 1em;">
+    Artist: <span id="artist"></span><br>
+    Title: <span id="title"></span><br>
+  </div>
+
+  <script>
+    const parseWrapper = (fn) => (event) => fn(JSON.parse(event.data));
+
+    const bearerPath = 'fm/ce1/c201/09710';
+
+    // push connection and event handling
+    const push = new EventSource(`/radiodns/push/1.0/${bearerPath}`);
+    push.addEventListener('image', parseWrapper((data) => {
+      document.getElementById('image').innerHTML = `
+        ${data.link ? `<a href="${data.link}">` : ''}
+        <img src="${data.src}" height="240">
+        ${data.link ? '</a>' : ''}
+      `;
+    }));
+    push.addEventListener('text', parseWrapper((data) => {
+      document.getElementById('text').textContent = data.body;
+    }));
+    push.addEventListener('meta', parseWrapper(({ item: { artwork, artist, title } }) => {
+      if (artwork) {
+        document.getElementById('artwork').src = artwork
+      } else {
+        document.getElementById('artwork').removeAttribute('src');
+      }
+      document.getElementById('artist').textContent = artist;
+      document.getElementById('title').textContent = title;
+    }));
+  </script>
+</body>
+</html>
